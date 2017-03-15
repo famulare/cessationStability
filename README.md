@@ -1,5 +1,5 @@
-# How polio vaccination affects poliovirus transmission
+# Assessing the stability of polio eradication after the withdrawal of oral polio vaccine
 
-Data, analysis, models, and visualization files to accompany *How polio vaccination affects poliovirus transmission* by Mike Famulare, Guillaume Chabot-Couture, Philip A. Eckhoff, Hil Lyons, Kevin A. McCarthy, and Christian Selinger.
+Data, analysis, models, and visualization files to accompany *Assessing the stability of polio eradication after the withdrawal of oral polio vaccine* by Mike Famulare,  Christian Selinger, Kevin A. McCarthy, Guillaume Chabot-Couture, and Philip A. Eckhoff.
 
 [Project description](https://famulare.github.io/howPolioVaccinationAffectsPoliovirusTransmission/)
