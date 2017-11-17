@@ -1,8 +1,8 @@
-function [NAbBeta,CI,yCI,L]=antibodyDependenceDoseResponseBootstrapFitter(NAb,Y,N,naiveBeta,betaCI,reps,modelNAbRange)
-if nargin<6
+function [NAbBeta,CI,yCI,L]=antibodyDependenceDoseResponseBootstrapFitter(NAb,dose,Y,N,naiveBeta,betaCI,reps,modelNAbRange)
+if nargin<7
     reps=100;
 end
-if nargin<7
+if nargin<8
     modelNAbRange=logspace(0,log10(2^14),1000);
 end
 
@@ -10,7 +10,7 @@ tmpCI(:,1)=linspace(betaCI(1,1),betaCI(2,1),reps);
 tmpCI(:,2)=linspace(betaCI(1,2),betaCI(2,2),reps);
 betaCI=tmpCI;
 
-dose=10^5.7;
+% dose=10^5.7;
 
 idx=any(~isnan(Y),2);
 NAb=NAb(idx);
@@ -25,11 +25,14 @@ L=-custnloglf(NAbBeta,Y,0,N);
 
 % parametric bootstap resampling around naive params
 betaBoot=nan(length(NAbBeta),reps);
-[X,~,idx]=unique(NAb);
-totN=zeros(size(X));
-for k=1:length(X)
-    totN(k)=sum(N(idx==k));
-end
+% [X,~,idx]=unique(NAb);
+% totN=zeros(size(X));
+% for k=1:length(X)
+%     totN(k)=sum(N(idx==k));
+% end
+X=NAb;
+totN=N;
+
 Yboot=zeros(length(X),reps);
 pBoot=nan(length(modelNAbRange),reps);
 
@@ -41,11 +44,11 @@ for k=1:reps
         end
         tmpBeta(1)=betaCI(ciBin(1),1);
         tmpBeta(2)=betaCI(ciBin(2),2);
-        Yboot(:,k)=binornd(totN,doseResponseModel(dose,X,1,[tmpBeta(1),tmpBeta(2),2^NAbBeta]))./totN;
-        custnloglf = @(b,Y,cens,N) -sum(Y.*N.*log(doseResponseModel(dose,X,1,[tmpBeta(1),tmpBeta(2),2^b])) + N.*(1-Y).*log(1-doseResponseModel(dose,X,1,[tmpBeta(1),tmpBeta(2),2^b])));
+        Yboot(:,k)=binornd(totN,doseResponseModel(dose,X,1,[tmpBeta(1),tmpBeta(2),2.^NAbBeta(1)]))./totN;
+        custnloglf = @(b,Y,cens,N) -sum(Y.*N.*log(doseResponseModel(dose,X,1,[tmpBeta(1),tmpBeta(2),2.^b(1)])) + N.*(1-Y).*log(1-doseResponseModel(dose,X,1,[tmpBeta(1),tmpBeta(2),2.^b(1)])));
     try % inference rarely chokes
             [betaBoot(:,k)] = mle(Yboot(:,k),'nloglf',custnloglf,'frequency',totN,'start',[0]) ;
-            pBoot(:,k)=doseResponseModel(dose,modelNAbRange,1,[tmpBeta(1),tmpBeta(2),2^betaBoot(k)]);
+            pBoot(:,k)=doseResponseModel(10^5.7,modelNAbRange,1,[tmpBeta(1),tmpBeta(2),2.^betaBoot(k)]);
     catch
         k=k-1;
     end

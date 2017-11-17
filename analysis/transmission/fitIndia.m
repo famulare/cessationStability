@@ -32,3 +32,5 @@ for n=1:reps;
 end
 CI=prctile(betaBoot(betaBoot<0)',[2.5,97.5])
 YCI=prctile(modelBoot',[2.5,97.5]);
+
+save('indiaFit.mat','beta','betaBoot','CI','YCI')

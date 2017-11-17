@@ -81,7 +81,7 @@ set(h,'ytick',(0.5+[0:length(ages)])/length(ages),'yticklabel',ages)
 
 
 %% age exploration: plot mucosal naives grouped by age at challenge
-immunizationPlans={'seronegative','unvaccinated','IPVx2','IPVx3'};
+immunizationPlans={'seronegative','unvaccinated','IPVx3'};
 ages=unique(data.challengeAgeMonths);
 ageBins=0:36;
 cmap=cbrewer('div','RdYlBu',length(ageBins));
@@ -108,6 +108,7 @@ for k=1:length(immunizationPlans)
             week1GMT(end+(1:sum(idx)))=data.sheddingGMT(idx,4);
             week1Age(end+(1:sum(idx)))=ages(n);
             week1Samp(end+(1:sum(idx)))=data.sampleSize(idx);
+            data.author(idx)
         end
     end
     ylim(10.^[2.6 7.5])

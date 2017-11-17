@@ -201,12 +201,12 @@ sampleSize=beta;
 [~,idx]=sort(nanmean(beta,2));
 
 figure(14); clf; 
-for k=5;1:length(data.immunizationPlans)    
+for k=1:length(data.immunizationPlans)    
     idx=find(ismember(data.meanSheddingImmunizationPlan,data.immunizationPlans(k)));
-    subplot(5,4,k)
+    subplot(3,6,k)
     
     hold all
-    for n=2;1:length(idx)
+    for n=1:length(idx)
         if ~all(isnan(data.meanSheddingCDF(idx(n),:)))
             plot(data.daysSinceChallenge,data.meanSheddingCDF(idx(n),:),'color',cmap(n,:))
            
@@ -216,9 +216,9 @@ for k=5;1:length(data.immunizationPlans)
 
             try
                 sampleSize(k,n)=data.meanSheddingSampleSize(idx(n));
-                [beta(k,n),CI(k,:,n),yCI]=sheddingDurationCDFbootstrapFitter(X,Y,N,1000);
+                [beta(k,n),CI(k,:,n),yCI]=sheddingDurationCDFbootstrapFitter(X,Y,N,1);
                 plot(data.daysSinceChallenge,sheddingDurationCDF(beta(k,n),data.daysSinceChallenge),'--','color',cmap(n,:));
-                text(30,0.9-0.1*(n-1),['N_{Ab} = ',num2str(round(beta(k,n))),' (',num2str(round(CI(k,1,n))),',',num2str(round(CI(k,2,n))),')'],'color',cmap(n,:),'fontsize',8);
+%                 text(30,0.9-0.1*(n-1),['N_{Ab} = ',num2str(round(beta(k,n))),' (',num2str(round(CI(k,1,n))),',',num2str(round(CI(k,2,n))),')'],'color',cmap(n,:),'fontsize',8);
                 
                 % median shedding duration
                 medianShedDur(k,n)=data.daysSinceChallenge(find(0.5>sheddingDurationCDF(beta(k,n),data.daysSinceChallenge),1));
@@ -228,11 +228,13 @@ for k=5;1:length(data.immunizationPlans)
         end
     end
     xlim([0,70])
-    if k==1
-        text(2,0.5,'Type 1','color',cmap(1,:),'fontsize',8);
-        text(2,0.35,'Type 2','color',cmap(2,:),'fontsize',8);
-        text(2,0.2,'Type 3','color',cmap(3,:),'fontsize',8);
-    end
+%     if k==1
+%         text(2,0.5,'Type 1','color',cmap(1,:),'fontsize',8);
+%         text(2,0.35,'Type 2','color',cmap(2,:),'fontsize',8);
+%         text(2,0.2,'Type 3','color',cmap(3,:),'fontsize',8);
+%     end
+    set(gca,'xtick',[0,30,60],'ytick',[0,.5,1])
+    
     title(data.immunizationPlans{k},'fontweight','normal','fontsize',10);
 
 end

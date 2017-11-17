@@ -5,13 +5,13 @@ data=xls2struct('..\..\Data\Louisiana1957\householdSeroconversion.xlsx','serocon
 %% fit cumulative incidence
 
 
-N=data.denominator([1,4,2,5]);
-Y=data.seroconversions([1,4,2,5]);
-NAb=data.medianPreExposureAntibodyTiter([1,4,2,5]);
+N=data.denominator([1,4,3,2,5]);
+Y=data.seroconversions([1,4,3,2,5]);
+NAb=data.medianPreExposureAntibodyTiter([1,4,3,2,5]);
 
 custnlogl=@(b,Y,cens,N) -wpvLouisianaTransmissionLogLikelihood(b,Y,N,NAb);
 [beta] = mle(Y,'nloglf',custnlogl,'frequency',N ...
-            ,'start',[0,0] ...
+            ,'start',[0,0,0] ...
             ,'options',statset('maxiter',1e4,'maxfunevals',1e4)) ;
 
 10.^beta(1)
@@ -22,8 +22,8 @@ wpvLouisianaTransmissionLogLikelihood(beta,Y,N,NAb)
 %% parametric bootstrap
 reps=1000;
 betaBoot=nan(length(beta),reps);
-modelBoot=nan(4,reps);
-for n=1:reps;
+modelBoot=nan(5,reps);
+for n=839:reps;
     n
     [~,~,bootY]=wpvLouisianaTransmissionLogLikelihood(beta,Y,N,NAb);
     custnlogl=@(b,Y,cens,N) -wpvLouisianaTransmissionLogLikelihood(b,Y,N,NAb,n);
@@ -36,3 +36,5 @@ CI=prctile(betaBoot',[2.5,97.5]);
 YCI=prctile(modelBoot',[2.5,97.5]);
 
 10.^CI
+
+save('LouisianaFit.mat','beta','betaBoot','CI','YCI')

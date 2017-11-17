@@ -10,7 +10,7 @@ data=doseResponseData();
 
 %% show all data
 
-modelDoseRange=logspace(-1,6,1e4);
+modelDoseRange=logspace(-1,6,1e3);
 cmap=[[125,0,0];[175,0,0]; ...
     [150,125,0];[0,175,0];[0,225,0]; ...
     [0,0,125];[0,0,175]; [0,0,225];[0,50,150];[125,0,125] ...
@@ -135,15 +135,25 @@ set(gca,'pos',pos);
 %% mucosal-naive dose response and model
 
 % plot naive type 1
-subplot(3,3,8)
+subplot(3,2,6)
 hold on;
-plot(data.Minor1981.smooth.dose,data.Minor1981.smooth.pos./data.Minor1981.smooth.N,'-','color',cmap(1,:))
-plot(data.Henry1966.dose,data.Henry1966.unvaccinated.pos./data.Henry1966.unvaccinated.N,'-','color',cmap(2,:))
-plot(data.Henry1966.dose,data.Henry1966.IPVx3.pos./data.Henry1966.IPVx3.N ,'-','color',cmap(3,:))
+plot(data.Minor1981.smooth.dose,data.Minor1981.smooth.pos./data.Minor1981.smooth.N,':o','color',cmap(1,:))
+plot(data.Henry1966.dose,data.Henry1966.unvaccinated.pos./data.Henry1966.unvaccinated.N,':o','color',cmap(2,:))
+plot(data.Henry1966.dose,data.Henry1966.IPVx3.pos./data.Henry1966.IPVx3.N ,':o','color',cmap(3,:))
 
 % aggregate type 2
-plot(data.Dane1961.unvaccinated.Sabin2.dose,data.Dane1961.unvaccinated.Sabin2.pos./data.Dane1961.unvaccinated.Sabin2.N,'-','color',cmap(11,:))
-plot(data.Dane1961.unvaccinated.HumanPassaged5DayStool.dose,data.Dane1961.unvaccinated.HumanPassaged5DayStool.pos./data.Dane1961.unvaccinated.HumanPassaged5DayStool.N,'-','color',cmap(12,:))
+plot(data.Dane1961.unvaccinated.Sabin2.dose,data.Dane1961.unvaccinated.Sabin2.pos./data.Dane1961.unvaccinated.Sabin2.N,':*','color',cmap(11,:))
+plot(data.Dane1961.unvaccinated.HumanPassaged5DayStool.dose,data.Dane1961.unvaccinated.HumanPassaged5DayStool.pos./data.Dane1961.unvaccinated.HumanPassaged5DayStool.N,':*','color',cmap(12,:))
+
+% IPV with some slop
+plot(data.Onorato1991.dose,data.Onorato1991.IPVx3.pos./data.Onorato1991.IPVx3.N,':d','linewidth',1,'color',cmap(5,:))
+plot(data.Henry1966.dose*1.1,data.Henry1966.IPVx4.pos./data.Henry1966.IPVx4.N,':d','linewidth',1,'color',cmap(4,:))
+
+% tOPV
+plot(data.Henry1966.dose,data.Henry1966.tOPVx3.pos./data.Henry1966.tOPVx3.N,':s','color',cmap(6,:))
+plot(data.Onorato1991.dose,data.Onorato1991.tOPVx3.pos./data.Onorato1991.tOPVx3.N,':s','color',cmap(7,:))
+
+
 
 set(gca,'xscale','log')
 xlim([modelDoseRange(1),modelDoseRange(end)])
@@ -159,13 +169,15 @@ Y=[data.Minor1981.pos,data.Henry1966.unvaccinated.pos,data.Henry1966.IPVx3.pos .
 N=[data.Minor1981.N,data.Henry1966.unvaccinated.N,data.Henry1966.IPVx3.N ...
     data.Dane1961.unvaccinated.Sabin2.N,data.Dane1961.unvaccinated.HumanPassaged5DayStool.N]';
 
-[beta,CI,naiveYCI]=doseResponseBootstrapFitter(X,Y,N,1000,modelDoseRange,1);
+[beta,CI,naiveYCI,~,betaBoot]=doseResponseBootstrapFitter(X,Y,N,1000,modelDoseRange,1);
 
 % plot fit
-plotWithCI(modelDoseRange,doseResponseModel(modelDoseRange,1,1,[beta(1),beta(2),0]),naiveYCI,[0.,0.,0])
+c=mean(cmap([1,2,3,11,12],:),1);
+plotWithCI(modelDoseRange,doseResponseModel(modelDoseRange,1,1,[beta(1),beta(2),0]),naiveYCI,c)
 
 % HID50
-HID50=fsolve(@(x) doseResponseModel(x,1,1,[beta(1),beta(2),0])-0.5,10)
+% HID50=fzero(@(x) doseResponseModel(x,1,1,[beta(1),beta(2),0])-0.5,10)
+HID50=fminbnd(@(x) (doseResponseModel(x,1,1,[beta(1),beta(2),0])-0.5).^2,.1,1000)
 HID50CI(2)=modelDoseRange(find(naiveYCI(:,1)>=0.5,1));
 HID50CI(1)=modelDoseRange(find(naiveYCI(:,2)>=0.5,1))
 
@@ -197,6 +209,8 @@ NAbCI(end+(1:4),:)=nan;
 NAb(2:5)=numImmDat(idx,2);
 NAbCI(2:5,:)=numImmDat(idx,3:4);
 
+dose=10^5.7*ones(size(NAb));
+
 [vaccineTake(2,1),vaccineTakeCI(2,:)]=binofit(data.Asturias2016.bOPVx3IPVx1.pos,data.Asturias2016.bOPVx3IPVx1.N);
 [vaccineTake(3,1),vaccineTakeCI(3,:)]=binofit(data.Asturias2016.bOPVx3IPVx2.pos,data.Asturias2016.bOPVx3IPVx2.N);
 [vaccineTake(4,1),vaccineTakeCI(4,:)]=binofit(data.ORyan2015.IPVx2bOPVx1.pos,data.ORyan2015.IPVx2bOPVx1.N);
@@ -221,11 +235,15 @@ end
 
 [vaccineTake(6,1),vaccineTakeCI(6,:)]=binofit(data.Henry1966.IPVx4.pos(1),data.Henry1966.IPVx4.N(1));
 [vaccineTake(7,1),vaccineTakeCI(7,:)]=binofit(data.Henry1966.tOPVx3.pos(1),data.Henry1966.tOPVx3.N(1));
+dose(6:7)=data.Henry1966.dose(1);
 [vaccineTake(8,1),vaccineTakeCI(8,:)]=binofit(data.Onorato1991.IPVx3.pos(1),data.Onorato1991.IPVx3.N(1));
 [vaccineTake(9,1),vaccineTakeCI(9,:)]=binofit(data.Onorato1991.tOPVx3.pos(1),data.Onorato1991.tOPVx3.N(1));
+dose(8:9)=data.Onorato1991.dose(1);
 [vaccineTake(10,1),vaccineTakeCI(10,:)]=binofit(data.Asturias2016.bOPVx3.pos(1),data.Asturias2016.bOPVx3.N(1));
 [vaccineTake(11,1),vaccineTakeCI(11,:)]=binofit(data.Asturias2016.tOPVx3.pos,data.Asturias2016.tOPVx3.N);
 [vaccineTake(12,1),vaccineTakeCI(12,:)]=binofit(data.Asturias2016.bOPVx3.pos(2),data.Asturias2016.bOPVx3.N(2));
+dose(10:12)=data.Asturias2016.dose(1);
+
 sampleSize(6,1)=data.Henry1966.IPVx4.N(1);
 sampleSize(7,1)=data.Henry1966.tOPVx3.N(1);
 sampleSize(8,1)=data.Onorato1991.IPVx3.N(1);
@@ -234,118 +252,106 @@ sampleSize(10,1)=data.Asturias2016.bOPVx3.N(1);
 sampleSize(11,1)=data.Asturias2016.tOPVx3.N;
 sampleSize(12,1)=data.Asturias2016.bOPVx3.N(2);
 
+
+[vaccineTake(13,1),vaccineTakeCI(13,:)]=binofit(data.Henry1966.IPVx4.pos(2),data.Henry1966.IPVx4.N(2));
+[vaccineTake(14,1),vaccineTakeCI(14,:)]=binofit(data.Henry1966.tOPVx3.pos(2),data.Henry1966.tOPVx3.N(2));
+dose(13:14)=data.Henry1966.dose(2);
+[vaccineTake(15,1),vaccineTakeCI(15,:)]=binofit(data.Onorato1991.IPVx3.pos(2),data.Onorato1991.IPVx3.N(2));
+[vaccineTake(16,1),vaccineTakeCI(16,:)]=binofit(data.Onorato1991.tOPVx3.pos(2),data.Onorato1991.tOPVx3.N(2));
+dose(15:16)=data.Onorato1991.dose(2);
+sampleSize(13,1)=data.Henry1966.IPVx4.N(3);
+sampleSize(14,1)=data.Henry1966.tOPVx3.N(3);
+sampleSize(15,1)=data.Onorato1991.IPVx3.N(2);
+sampleSize(16,1)=data.Onorato1991.tOPVx3.N(2);
+NAb(13:16)=NAb(6:9);
+immunizationPlans(13:16)=immunizationPlans(6:9);
+
+[vaccineTake(17,1),vaccineTakeCI(17,:)]=binofit(data.Henry1966.IPVx4.pos(3),data.Henry1966.IPVx4.N(3));
+[vaccineTake(18,1),vaccineTakeCI(18,:)]=binofit(data.Henry1966.tOPVx3.pos(3),data.Henry1966.tOPVx3.N(3));
+dose(17:18)=data.Henry1966.dose(3);
+immunizationPlans(17:18)=immunizationPlans(6:7);
+NAb(17:18)=NAb(6:7);
+
+[vaccineTake(19,1),vaccineTakeCI(19,:)]=binofit(data.Henry1966.IPVx4.pos(4),data.Henry1966.IPVx4.N(4));
+[vaccineTake(20,1),vaccineTakeCI(20,:)]=binofit(data.Henry1966.tOPVx3.pos(4),data.Henry1966.tOPVx3.N(4));
+dose(19:20)=data.Henry1966.dose(4);
+immunizationPlans(19:20)=immunizationPlans(6:7);
+NAb(19:20)=NAb(6:7);
+
+[vaccineTake(21,1),vaccineTakeCI(21,:)]=binofit(data.Henry1966.IPVx4.pos(5),data.Henry1966.IPVx4.N(5));
+[vaccineTake(22,1),vaccineTakeCI(22,:)]=binofit(data.Henry1966.tOPVx3.pos(5),data.Henry1966.tOPVx3.N(5));
+dose(21:22)=data.Henry1966.dose(5);
+immunizationPlans(21:22)=immunizationPlans(6:7);
+NAb(21:22)=NAb(6:7);
+sampleSize([17:2:22],1)=data.Henry1966.IPVx4.N(3:5);
+sampleSize([18:2:22],1)=data.Henry1966.tOPVx3.N(3:5);
+
 %% plot
-subplot(3,3,7)
-cmap=cmap([1,17,17,15,14,4,6,5,7,16,18,16],:);
-cmap(3,:)=cmap(3,:)*1.1;
-cmap(12,:)=cmap(12,:)*1.2;
+subplot(3,2,5)
+cmap2=cmap([1,17,17,15,14,4,6,5,7,16,18,16],:);
+cmap2(3,:)=cmap2(3,:)*1.1;
+cmap2(12,:)=cmap2(12,:)*1.2;
 
 hold on;
-for k=1:length(NAb)
-    plot(NAb(k),vaccineTake(k),'.','markerfacecolor',cmap(k,:),'markeredgecolor',cmap(k,:),'markersize',10);
-    plot(NAb(k)*[1,1],vaccineTakeCI(k,:),'-','color',cmap(k,:));
-    plot(NAbCI(k,:),vaccineTake(k)*[1,1],'-','color',cmap(k,:));
+for k=1:12%length(NAb)
+    plot(NAb(k),vaccineTake(k),'.','markerfacecolor',cmap2(k,:),'markeredgecolor',cmap2(k,:),'markersize',10);
+    plot(NAb(k)*[1,1],vaccineTakeCI(k,:),'-','color',cmap2(k,:));
+    plot(NAbCI(k,:),vaccineTake(k)*[1,1],'-','color',cmap2(k,:));
 end
 set(gca,'xscale','log')
 xlim([.1,2^14])
 set(gca,'xtick',10.^[-3:2:6])
 xlabel('OPV-equivalent antibody titer')
 ylabel('vaccine take')
-colormap(cmap);
+colormap(cmap2);
 
 h=colorbar;
 set(h,'ytick',(0.5+[0:length(immunizationPlans)])/length(immunizationPlans),'yticklabel',immunizationPlans)
 
 %% fit model
-[NAbBeta,NAbBetaCI,yCI]=antibodyDependenceDoseResponseBootstrapFitter(NAb,vaccineTake,sampleSize,beta,CI,100);
+
+idx=2:length(NAb);
+[NAbBeta,NAbBetaCI,yCI]=antibodyDependenceDoseResponseBootstrapFitter(NAb(idx),dose(idx),vaccineTake(idx),sampleSize(idx),beta,CI,100);
 
 NAbRange=logspace(0,log10(2^14),1000);
-plotWithCI(NAbRange,doseResponseModel(10^5.7,NAbRange,[beta(1),beta(2),NAbBeta]),yCI,[0.2,0.2,0.2])
+plotWithCI(NAbRange,doseResponseModel(10^5.7,NAbRange,1,[beta(1),beta(2),NAbBeta]),yCI,[0.2,0.2,0.2])
+
 
 %% plot model
-subplot(3,3,9)
-cmap2=colormap(lines(4));
-cmap2(2:4,:)=cmap2([1,2,4],:);
-cmap2(1,:)=[.2,.2,.2];
+subplot(3,2,6)
 hold on;
 
-% naive
-plotWithCI(modelDoseRange,doseResponseModel(modelDoseRange,1,1,[beta(1),beta(2),0]),naiveYCI,cmap2(1,:))
+idx=[6,8,7,9]; %IPV
+cIdx=[4,5,6,7];
 
-% NAb=8
-NAb=2^3;
-reps=100;
-betaCI(:,1)=linspace(CI(1,1),CI(2,1),reps);
-betaCI(:,2)=linspace(CI(1,2),CI(2,2),reps);
-betaCI(:,3)=linspace(NAbBetaCI(1),NAbBetaCI(2),reps);
-pBoot=nan(length(modelDoseRange),reps);
-for k=1:100
-    ciBin=[0,0,0];
-    while any(ciBin<1 | ciBin>reps)
-        ciBin=round(reps/2+reps/4*randn(1,3));
+for m=1:length(idx)
+    NAbW=NAb(idx(m));
+    c=mean(cmap(cIdx(m),:),1);
+
+    reps=100;
+    betaCI(:,1)=linspace(CI(1,1),CI(2,1),reps);
+    betaCI(:,2)=linspace(CI(1,2),CI(2,2),reps);
+    betaCI(:,3)=linspace(NAbBetaCI(1),NAbBetaCI(2),reps);
+    pBoot=nan(length(modelDoseRange),reps);
+    for k=1:100
+        ciBin=[0,0,0];
+        while any(ciBin<1 | ciBin>reps)
+            ciBin=round(reps/2+reps/4*randn(1,3));
+        end
+        tmpBeta(1)=betaCI(ciBin(1),1);
+        tmpBeta(2)=betaCI(ciBin(2),2);
+        tmpBeta(3)=betaCI(ciBin(2),2);
+        pBoot(:,k)=doseResponseModel(modelDoseRange,NAbW,1,tmpBeta);
     end
-    tmpBeta(1)=betaCI(ciBin(1),1);
-    tmpBeta(2)=betaCI(ciBin(2),2);
-    tmpBeta(3)=betaCI(ciBin(2),2);
-    pBoot(:,k)=doseResponseModel(modelDoseRange,NAb,1,tmpBeta);
+    yCI=quantile(pBoot',[0.025,0.975])';
+    plotWithCI(modelDoseRange,doseResponseModel(modelDoseRange,NAbW,1,[beta(1),beta(2),NAbBeta]),yCI,c)
 end
-yCI=quantile(pBoot',[0.025,0.975])';
-plotWithCI(modelDoseRange,doseResponseModel(modelDoseRange,NAb,1,[beta(1),beta(2),NAbBeta]),yCI,cmap2(2,:))
-
-
-% NAb=128
-NAb=2^7;
-reps=100;
-betaCI(:,1)=linspace(CI(1,1),CI(2,1),reps);
-betaCI(:,2)=linspace(CI(1,2),CI(2,2),reps);
-betaCI(:,3)=linspace(NAbBetaCI(1),NAbBetaCI(2),reps);
-pBoot=nan(length(modelDoseRange),reps);
-for k=1:100
-    ciBin=[0,0,0];
-    while any(ciBin<1 | ciBin>reps)
-        ciBin=round(reps/2+reps/4*randn(1,3));
-    end
-    tmpBeta(1)=betaCI(ciBin(1),1);
-    tmpBeta(2)=betaCI(ciBin(2),2);
-    tmpBeta(3)=betaCI(ciBin(2),2);
-    pBoot(:,k)=doseResponseModel(modelDoseRange,NAb,1,tmpBeta);
-end
-yCI=quantile(pBoot',[0.025,0.975])';
-plotWithCI(modelDoseRange,doseResponseModel(modelDoseRange,NAb,1,[beta(1),beta(2),NAbBeta]),yCI,cmap2(3,:))
-
-
-% NAb=2048
-NAb=2^11;
-reps=100;
-betaCI(:,1)=linspace(CI(1,1),CI(2,1),reps);
-betaCI(:,2)=linspace(CI(1,2),CI(2,2),reps);
-betaCI(:,3)=linspace(NAbBetaCI(1),NAbBetaCI(2),reps);
-pBoot=nan(length(modelDoseRange),reps);
-for k=1:100
-    ciBin=[0,0,0];
-    while any(ciBin<1 | ciBin>reps)
-        ciBin=round(reps/2+reps/4*randn(1,3));
-    end
-    tmpBeta(1)=betaCI(ciBin(1),1);
-    tmpBeta(2)=betaCI(ciBin(2),2);
-    tmpBeta(3)=betaCI(ciBin(2),2);
-    pBoot(:,k)=doseResponseModel(modelDoseRange,NAb,1,tmpBeta);
-end
-yCI=quantile(pBoot',[0.025,0.975])';
-plotWithCI(modelDoseRange,doseResponseModel(modelDoseRange,NAb,1,[beta(1),beta(2),NAbBeta]),yCI,cmap2(4,:))
 
 set(gca,'xscale','log')
 xlim([modelDoseRange(1),modelDoseRange(end)])
 set(gca,'xtick',10.^[-3:2:6])
 xlabel('dose [TCID50]')
 ylabel('fraction shedding')
-text(1,0.8,'N_{Ab}=1','color',cmap2(1,:));
-text(1,0.7,'N_{Ab}=8','color',cmap2(2,:));
-text(1,0.6,'N_{Ab}=128','color',cmap2(3,:));
-text(1,0.5,'N_{Ab}=2048','color',cmap2(4,:));
-
-subplot(3,3,7)
-colormap(cmap);
 
 
 %% fit IPV boosting
@@ -360,3 +366,5 @@ custnloglf = @(b,Y,cens,N) -sum(Y.*log(doseResponseModel(10^5.7,2^b)) + (N-Y).*l
 [betatOPVxN,CItOPVxN] = mle(data.Jafari2014.tOPVxN.pos','nloglf',custnloglf,'frequency',data.Jafari2014.tOPVxN.N','start',[7]);
 round(2^betatOPVxN)
 round(2.^CItOPVxN)
+
+

@@ -7,21 +7,21 @@ if nargin<2
 end
 if nargin<3
     serotype=2;
-    b=[14.24,0.444,0.545];
+    b=[14.24,0.444,0.4624];
 end
 if nargin<4 
     if serotype==1
-        b=[14.24,0.444,0.545];
+        b=[14.24,0.444,0.4624];
     elseif serotype==2 
-        b=[7.9611,0.444,0.545];
+        b=[7.9611,0.444,0.4624];
     elseif serotype==3 
-        b=[17.8232,0.444,0.545];
+        b=[17.8232,0.444,0.4624];
     else
-        b=[1.83,0.444,0.545];
+        b=[1.83,0.444,0.4624];
     end
 end
 
 % beta-poisson dose response model
-probabilityInfected = 1-(1+dose/b(1)).^(-b(2)./NAb.^b(3)); 
+probabilityInfected = 1-(1+dose/b(1)).^(-b(2)./(NAb.^b(3))); 
 
 end

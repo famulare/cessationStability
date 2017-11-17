@@ -8,7 +8,7 @@ addpath(genpath('..\shedding\'))
 %% 
 NAbRange=(logspace(0,11*log10(2),200));
 serotype=2;
-age=18;
+age=30;
 t=0:80;
 t0=0;
 reps=10000;
@@ -22,10 +22,22 @@ for k=1:length(NAbRange)
     
     for n=1:reps
         ciIdx=zeros(4);
+        rng(n);
         while any(any(ciIdx<1 | ciIdx>reps))
             ciIdx=round(reps/2+reps/4*randn(4));
 %             % strong anti-correlation between load 2 and load 4
 %             ciIdx(2,4)=round(-0.58*(0.063/0.078)*(ciIdx(2,2)-reps/2)+sqrt(1-.58)*reps/4*randn(1));
+
+        % strong dose-response parameter correlation
+        rho=0.87;
+        L=reps/2*[1.12,0.99];
+        idx=0;
+        while any(ciIdx(1,1:2)<1 | ciIdx(1,1:2)>reps)
+            ciIdx(1,1)=round(L(1)+reps/4*randn);
+            ciIdx(1,2)=round(L(2)+rho*(ciIdx(1)-L(1))+sqrt((1-rho^2))*reps/4*randn);
+        end
+
+        
         end
         for m=1:3
             betaDose(m)=doseResponseCI(ciIdx(1,m),m);

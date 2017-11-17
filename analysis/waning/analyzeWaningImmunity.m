@@ -168,7 +168,37 @@ fitIdx=true(size(NAb));
 
 % log-linear best-fit
 model=@(b,t) b(1)-beta(2).*log2(t);
-[betaBOPV]=nlinfit(waningTime(fitIdx),log2(NAb(fitIdx))',model,[2],'weights',sampleSize(fitIdx));
+[betaBOPV,R,~,COVB]=nlinfit(waningTime(fitIdx),log2(NAb(fitIdx))',model,[2],'weights',sampleSize(fitIdx));
+
+model=@(b,t) b(1)-b(2).^2.*log2(t);
+[betaBOPV]=nlinfit(waningTime(fitIdx),log2(NAb(fitIdx))',model,[2,1],'weights',sampleSize(fitIdx));
+
+% boostrap CI
+reps=100;
+betaBoot=nan(length(betaBOPV),reps);
+for k=1:length(NAb)
+    tmpCI(:,k)=(linspace(log2(NAbCI(k,1)),log2(NAbCI(k,2)),reps));
+end
+tmpCI;
+model=@(b,t) b(1)-b(2).^2.*log2(t);
+for k=1:reps
+        % normal sample from CI
+        ciBin=zeros(length(NAb),1);
+        while any(ciBin<1 | ciBin>reps)
+            ciBin=round(reps/2+reps/4*randn(1,length(NAb)));
+        end
+        for n=1:length(NAb)
+            tmpNAb(n)=tmpCI(ciBin(n),n);
+        end
+        Yboot(:,k)=tmpNAb;
+        [betaBoot(:,k),R,~,COVB]=nlinfit(waningTime(fitIdx),(tmpNAb(fitIdx))',model,[11,0],'weights',sampleSize(fitIdx));
+%         [pBoot(:,k),delta] = nlpredci(model,t,betaBoot(:,k),R,'covar',COVB);
+        pBoot(:,k)=pBoot(:,k)+randn/2*delta';
+        
+end
+betaBoot(:,2)=betaBoot(:,2).^2;
+CI=quantile(betaBoot',[0.025,0.975]);
+% yCI=quantile(pBoot',[0.025,0.975])';
 
 plotWithCI(t,2.^(YPRED'+betaBOPV-YPRED(1)),2.^(yCI+betaBOPV-YPRED(1)),[0.1,0.7,0.1])
 
@@ -209,3 +239,23 @@ ylabel('mean relative shedding index')
 xlabel('months from last exposure to challenge')
 
 save('waningWorkspace.mat')
+
+
+%% waning in years
+NAb=[2048,512,64,8,1];
+b=[0.87,.73,1.02];
+wan=@(t,b,N) (N*t^(-b));
+for k=1:4
+    for n=1:3
+        res(k,n)=fzero(@(x) -NAb(k+1)+wan(x.^2,b(n),NAb(1)),2).^2;
+    end
+end
+
+NAb=[9.5,512,64,8,1];
+b=[0.87,.73,1.02];
+wan=@(t,b,N) (N*t^(-b));
+for k=1:4
+    for n=1:3
+        res(k,n)=fzero(@(x) -NAb(k+1)+wan(x.^2,b(n),NAb(1)),2).^2;
+    end
+end

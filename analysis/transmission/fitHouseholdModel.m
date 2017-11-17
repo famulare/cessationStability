@@ -24,7 +24,7 @@ end
 
 custnlogl=@(b,Y,cens,N) -householdTransmissionLogLikelihood(b,X,Y,N);
 [beta] = mle(Y,'nloglf',custnlogl,'frequency',N ...
-            ,'start',[0.1,0.1,0.1,-5,-4,0,0] ...
+            ,'start',[0.1,0.1,0.1,-5,0,0,0] ...
             ,'options',statset('maxiter',1e4,'maxfunevals',1e4)) ;
 
 beta
@@ -33,11 +33,11 @@ householdTransmissionLogLikelihood(beta,X,Y,N)
 % parametric bootstrap
 reps=1000;
 betaBoot=nan(length(beta),reps);
-modelBoot=nan(36*9,reps);
+modelBoot=nan(101*9,reps);
 for n=1:reps;
     n
     [~,~,bootY]=householdTransmissionLogLikelihood(beta,X,Y,N);
-    custnlogl=@(b,Y,cens,N) -transmissionLogLikelihood(b,X,Y,N,n);
+    custnlogl=@(b,Y,cens,N) -householdTransmissionLogLikelihood(b,X,Y,N,n);
     betaBoot(:,n) = mle(bootY,'nloglf',custnlogl,'frequency',N ...
             ,'start',beta ...
             ,'options',statset('maxiter',1e4,'maxfunevals',1e4));
@@ -52,7 +52,7 @@ figure(2);
 tmax=35;
 
 [~,fit]=householdTransmissionLogLikelihood(beta,0:tmax,1,1);
-fit=reshape(fit,tmax+1,9);
+fit=reshape(fit,101,9);
 fit=fit(:,[1,4,7,2,5,8,3,6,9]);
 YCI=reshape(YCI,tmax+1,9,2);
 YCI=YCI(:,[1,4,7,2,5,8,3,6,9],:);

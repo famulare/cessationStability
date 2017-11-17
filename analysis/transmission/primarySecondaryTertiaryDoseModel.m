@@ -1,17 +1,17 @@
 function [experiment]=primarySecondaryTertiaryDoseModel(varargin)
 
-params=struct('t',1:35 ... % duration of trial
+params=struct('t',1:100 ... % duration of trial
             ,'serotype',2 ... % challenge serotype
             ,'vaccinationTime',1 ... % start day of trial
             ,'vaccineDose',10^6 ... % vaccine dose TCID50
             ,'perDoseEfficacy',0.8863... % efficacy scaler to dose response to account for trial arm variations in vaccine take
             ,'secondaryContactAcquire',10^(-5.2943) ... % daily fecal dose (g/day) of secondary from primary contact
-            ,'tertiaryContactAcquire',10^(-4.3299) ... % daily fecal dose (g/day) of tertiary from secondary contact
+            ,'tertiaryContactAcquire',10^(-5.2943) ... % daily fecal dose (g/day) of tertiary from secondary contact
             ,'primaryLog2NAb',0 ... % primary OPV-equivalent immunity
             ,'secondaryLog2NAb',0 ... % secondary OPV-equivalent immunity
             ,'tertiaryLog2NAb',0 ... % tertiary OPV-equivalent immunity
-            ,'probDailyPrimarySecondaryContact',1 ... % modify daily contact rates to lower per-day probability
-            ,'probDailySecondaryTertiaryContact',1 ...  % uniform probability for how likely a contact is to be visited each day
+            ,'numDailyPrimarySecondaryContact',1 ... % modify daily contact rates to lower per-day probability
+            ,'numDailySecondaryTertiaryContact',8.9685 ...  % uniform probability for how likely a contact is to be visited each day
             ,'primaryAgeMos',12 ... % age of primary in months
             ,'secondaryAgeMos',48 ... % age of tertiary in months
             ,'tertiaryAgeMos',48 ... % age of tertiary in months
@@ -35,18 +35,19 @@ params=keyValuePairVararginHandler(params,varargin);
     params.private.sheddingViralLoadGMT.bCI=[1.26,0.01,0.01,0.08;2.09,0.78,0.079,0.71];
     params.private.peakSheddingAgeMultiplier.b=[6.67,4.29,9.92];
     params.private.peakSheddingAgeMultiplier.bCI=[5.9,3.5,1;7.5,5.0,33];
+    params.private.doseResponseProbability.bCIrho=[0,0.87,0];
     if params.serotype==1
-        params.private.doseResponseProbability.b=[14.24,0.444,0.545];
-        params.private.doseResponseProbability.bCI=[3,0.29,0.51;59,0.83,0.57];
+        params.private.doseResponseProbability.b=[14.24,0.444,0.4624];
+        params.private.doseResponseProbability.bCI=[3,0.29,0.42;59,0.83,0.50];
     elseif params.serotype==2 
-        params.private.doseResponseProbability.b=[7.9611,0.444,0.545];
-        params.private.doseResponseProbability.bCI=[2,0.29,0.51;29.9,0.83,0.57];
+        params.private.doseResponseProbability.b=[7.9611,0.444,0.4624];
+        params.private.doseResponseProbability.bCI=[2,0.29,0.42;29.9,0.83,0.50];
     elseif params.serotype==3 
-        params.private.doseResponseProbability.b=[17.8232,0.444,0.545];
-        params.private.doseResponseProbability.bCI=[4.66,0.29,0.51;62.79,0.83,0.57];
+        params.private.doseResponseProbability.b=[17.8232,0.444,0.4624];
+        params.private.doseResponseProbability.bCI=[4.66,0.29,0.42;62.79,0.83,0.50];
     elseif params.serotype==4 % WPV 
-        params.private.doseResponseProbability.b=[1.83,0.444,0.545];    
-        params.private.doseResponseProbability.bCI=[0.20,0.29,0.51;29,0.83,0.57];
+        params.private.doseResponseProbability.b=[2.31,0.444,0.4624];    
+        params.private.doseResponseProbability.bCI=[0.25,0.29,0.42;37,0.83,0.50];
     end
     % resample parameters for uncertainty propagation
     if params.confidenceIntervalSamplerSeed>0;
@@ -58,7 +59,7 @@ params=keyValuePairVararginHandler(params,varargin);
         
         tmp=params.private.doseResponseProbability.bCI;
         tmp(:,1)=log10(tmp(:,1)); % first parameter lives in log space
-        params.private.doseResponseProbability.b=resampleParametersFromCI(tmp);
+        params.private.doseResponseProbability.b=resampleParametersFromCI(tmp, params.private.doseResponseProbability.bCIrho);
         params.private.doseResponseProbability.b(1)=10^params.private.doseResponseProbability.b(1);
     end
     % if fitting dose response beta
@@ -80,19 +81,19 @@ params=keyValuePairVararginHandler(params,varargin);
 
     % secondary contact   
         secondaryLog2NAb=params.secondaryLog2NAb;
-        secondaryContactProbPerDay=params.probDailyPrimarySecondaryContact;
+        secondaryContactNumPerDay=params.numDailyPrimarySecondaryContact;
 
         % incidence
-        probSecondaryIncidence=incidenceFromContact(probPrimaryIncidence,t,primaryLog2NAb,params.primaryAgeMos,params.secondaryContactAcquire,secondaryLog2NAb,secondaryContactProbPerDay,params);
+        probSecondaryIncidence=incidenceFromContact(probPrimaryIncidence,t,primaryLog2NAb,params.primaryAgeMos,params.secondaryContactAcquire,secondaryLog2NAb,secondaryContactNumPerDay,params);
         % prevalence
         probSecondaryShedding=prevalenceFromIncidence(probSecondaryIncidence,t,secondaryLog2NAb,params);
 
     % tertiary contact of secondary contact   
         tertiaryLog2NAb=params.tertiaryLog2NAb;
-        tertiaryContactProbPerDay=params.probDailySecondaryTertiaryContact;
+        tertiaryContactNumPerDay=params.numDailySecondaryTertiaryContact;
 
         % incidence
-        probTertiaryIncidence=incidenceFromContact(probSecondaryIncidence,t,secondaryLog2NAb,params.secondaryAgeMos,params.tertiaryContactAcquire,tertiaryLog2NAb,tertiaryContactProbPerDay,params);
+        probTertiaryIncidence=incidenceFromContact(probSecondaryIncidence,t,secondaryLog2NAb,params.secondaryAgeMos,params.tertiaryContactAcquire,tertiaryLog2NAb,tertiaryContactNumPerDay,params);
         % prevalence
         probTertiaryShedding=prevalenceFromIncidence(probTertiaryIncidence,t,tertiaryLog2NAb,params);
 
@@ -135,7 +136,7 @@ params=keyValuePairVararginHandler(params,varargin);
 
 end
 
-function receivingIncidence=incidenceFromContact(inputIncidence,t,inputLog2NAb,inputAge,contactAcquire,receivingLog2NAb,contactProbPerDay,params)
+function receivingIncidence=incidenceFromContact(inputIncidence,t,inputLog2NAb,inputAge,contactAcquire,receivingLog2NAb,ContactNumPerDay,params)
     
     inputInfectiousDuration=probabilityStillInfected(t,inputLog2NAb,1,params);
     receivingIncidence=zeros(size(inputIncidence));
@@ -145,7 +146,7 @@ function receivingIncidence=incidenceFromContact(inputIncidence,t,inputLog2NAb,i
             stillInfectedHolder=[zeros(1,m-1),inputInfectiousDuration(:,1:length(t)-m+1)];
             inputPrevalence=inputIncidence(m).*stillInfectedHolder;
         % infectious probability from those secondaries
-            receivingIncidencePerDailyContact=inputPrevalence.*[zeros(1,m-1),pTransmissionGivenContactShedding(inputLog2NAb,inputAge,contactAcquire,m:t(end),m,receivingLog2NAb,contactProbPerDay,params)];
+            receivingIncidencePerDailyContact=inputPrevalence.*[zeros(1,m-1),pTransmissionGivenContactShedding(inputLog2NAb,inputAge,contactAcquire,m:t(end),m,receivingLog2NAb,ContactNumPerDay,params)];
         % add up total incidence
             receivingIncidence = receivingIncidence + receivingIncidencePerDailyContact;
     end
@@ -171,11 +172,12 @@ function PStillInfected = probabilityStillInfected(t,log2NAb,t0,params)
     PStillInfected(t<(t0+1))=0;
 end
 
-function [PTrans] = pTransmissionGivenContactShedding(inputLog2NAb,inputAge,contactAcquire,t,t0,receivingLog2NAb,contactProbPerDay,params)
+function [PTrans] = pTransmissionGivenContactShedding(inputLog2NAb,inputAge,contactAcquire,t,t0,receivingLog2NAb,ContactNumPerDay,params)
 % inhomogeneous poisson transmission based on fecal viral load per day
 
+    d=doseResponseProbability(contactAcquire*sheddingViralLoadGMT(inputLog2NAb,t,t0,inputAge,params),receivingLog2NAb,params);
+    beta=1-(1-d).^ContactNumPerDay; % sum over number of attempts
     
-    beta=contactProbPerDay*doseResponseProbability(contactAcquire*sheddingViralLoadGMT(inputLog2NAb,t,t0,inputAge,params),receivingLog2NAb,params);
     compBeta=[1,1-beta(1:end-1)];
     PTrans=beta.*cumprod(compBeta);
     
@@ -213,18 +215,29 @@ peakSheddingAgeFactor =min(b(1),((b(1)-b(2))*exp(-(ageMonths-7)/b(3))+b(2)));
 
 end
 
-function b=resampleParametersFromCI(bCI)
+function b=resampleParametersFromCI(bCI,rho)
 % CI sampler
-nBins=100;
-b=zeros(size(bCI,2));
-for n=1:size(bCI,2)
-    tmp=linspace(bCI(1,n),bCI(2,n),nBins);
-    idx=0;
-    while idx<1 || idx>nBins
-        idx=round(nBins/2+randn*nBins/4);
-    end
-    b(n)=tmp(idx);
+if nargin==1, 
+    rho=zeros(1,size(bCI,2));
 end
+nBins=100;
+b=zeros(1,size(bCI,2));
+tmp=zeros(nBins,size(bCI,2));
+for n=1:size(bCI,2)
+    tmp(:,n)=linspace(bCI(1,n),bCI(2,n),nBins);
+end
+
+idx=b;
+while any(idx<1 | idx>nBins)
+    idx(1)=round(nBins/2+nBins/4*randn);
+    for n=2:length(b)
+        idx(n)=round(nBins/2+rho(n)*(idx(1)-nBins/2)+sqrt((1-rho(n)^2))*nBins/4*randn);
+    end
+end
+for n=1:length(b)
+    b(n)=tmp(idx(n),n);
+end
+
 end
 
 function expectedPositive = expectedPositiveGivenIndex(N,pis, pss)

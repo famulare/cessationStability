@@ -1,4 +1,4 @@
-function [beta,CI,yCI,L]=doseResponseBootstrapFitter(X,Y,N,reps,modelDoseRange,NAb,bpAlpha,bpAlphaCI)
+function [beta,CI,yCI,L,betaBoot]=doseResponseBootstrapFitter(X,Y,N,reps,modelDoseRange,NAb,bpAlpha,bpAlphaCI)
 if nargin<4
     reps=100;
 end
@@ -74,6 +74,7 @@ yCI=quantile(pBoot',[0.025,0.975])';
 
 beta=2.^beta;
 CI=2.^CI;
+betaBoot=2.^betaBoot;
 
 % if ~isempty(bpAlpha)
 %     beta=[beta(1),bpAlpha];

@@ -17,9 +17,9 @@ end
     
 hold on;
 if solidMarkerFlag
-    plot(x,p,linestyleStr,'linewidth',1,'color',col,'markerfacecolor',col)
+    plot(x,p,linestyleStr,'linewidth',1.5,'color',col,'markerfacecolor',col)
 else
-    plot(x,p,linestyleStr,'linewidth',1,'color',col)
+    plot(x,p,linestyleStr,'linewidth',1.5,'color',col)
 end
 
 if dottedCIFlag
