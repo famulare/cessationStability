@@ -57,9 +57,14 @@ xlabel('log2PreExposureTiter')
 xlim([6,14])
 
 %% is log titer for non-coverters roughly gaussian?
-figure(2); hold all;
-[y,x]=hist(data(~idx,3),-2:2);
+figure(2); clf; hold all;
+[y,x]=hist(df.logePostPreRatio(~idx),log(2)*(-2:1));
+mu=mean(df.logePostPreRatio(~idx));
+sig=std(df.logePostPreRatio(~idx))
 plot(x,y/sum(y),'k');
+p=exp(-(x-mu).^2/(2*sig^2)); 
+p=p/sum(p);
+plot(x,p,'k--')
 % for k=unique(data(~idx,1))'
 %     [y,x]=hist(data(~idx & data(:,1)==k,3),-2:2);
 %     plot(x,y/sum(y));
@@ -69,3 +74,14 @@ ylabel('frequency')
 title('non-seroconverters','fontweight','normal')
 
 % sure...
+
+% is all boosting residual due to assay noise or is there intrinsic
+% immunity variability?
+
+boostResidual=df.logePostPreRatio(idx)-LM.predict(df(idx,:));
+mean(boostResidual)
+std(boostResidual)
+[y,x]=hist(boostResidual,log(2)*(-6:6));
+plot(x,y/sum(y),'r')
+
+% sure looks like intrinsic variability...
