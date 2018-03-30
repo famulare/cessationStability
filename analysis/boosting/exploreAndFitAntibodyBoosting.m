@@ -60,7 +60,7 @@ xlim([6,14])
 figure(2); clf; hold all;
 [y,x]=hist(df.logePostPreRatio(~idx),log(2)*(-2:1));
 mu=mean(df.logePostPreRatio(~idx));
-sig=std(df.logePostPreRatio(~idx))
+sigAssay=std(df.logePostPreRatio(~idx))
 plot(x,y/sum(y),'k');
 p=exp(-(x-mu).^2/(2*sig^2)); 
 p=p/sum(p);
@@ -79,9 +79,30 @@ title('non-seroconverters','fontweight','normal')
 % immunity variability?
 
 boostResidual=df.logePostPreRatio(idx)-LM.predict(df(idx,:));
-mean(boostResidual)
-std(boostResidual)
+% mean(boostResidual)
+sigBoost=std(boostResidual)
 [y,x]=hist(boostResidual,log(2)*(-6:6));
 plot(x,y/sum(y),'r')
 
 % sure looks like intrinsic variability...
+
+sigBiology=sqrt(sigBoost^2-sigAssay^2)
+
+
+
+figure(3)
+LM.plotResiduals('probability')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
